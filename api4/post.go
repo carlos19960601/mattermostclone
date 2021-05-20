@@ -26,7 +26,7 @@ func createPost(ctx *Context, w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(rp.ToJSON()))
+	_, _ = w.Write([]byte(rp.ToJSON()))
 }
 
 func getPost(ctx *Context, w http.ResponseWriter, r *http.Request) {

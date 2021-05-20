@@ -23,3 +23,11 @@ func (api *API) ApiSessionRequired(h func(*Context, http.ResponseWriter, *http.R
 	}
 	return &handler
 }
+
+func (api *API) ApiHanderTrustRequest(h func(*Context, http.ResponseWriter, *http.Request)) http.Handler {
+	handler := web.Handler{
+		App:        api.app,
+		HandleFunc: h,
+	}
+	return &handler
+}

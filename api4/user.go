@@ -26,7 +26,7 @@ func createUser(ctx *Context, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(ruser.ToJSON()))
+	_, _ = w.Write([]byte(ruser.ToJSON()))
 }
 
 func getUsers(ctx *Context, w http.ResponseWriter, r *http.Request) {
@@ -49,5 +49,5 @@ func login(ctx *Context, w http.ResponseWriter, r *http.Request) {
 		ctx.Err = err
 		return
 	}
-	w.Write([]byte(user.ToJSON()))
+	_, _ = w.Write([]byte(user.ToJSON()))
 }

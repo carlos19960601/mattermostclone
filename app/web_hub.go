@@ -1,6 +1,7 @@
 package app
 
 import (
+	"hash/maphash"
 	"runtime"
 
 	"github.com/zengqiang96/mattermostclone/model"
@@ -42,6 +43,14 @@ func (s *Server) PublishSkipClusterMessage(event *model.WebSocketEvent) {
 			hub.Broadcast(event)
 		}
 	}
+}
+
+func (s *Server) GetHubForUserId(userId string) *Hub {
+	var hash maphash.Hash
+	hash.SetSeed(s.hashSeed)
+	_, _ = hash.Write([]byte(userId))
+	index := hash.Sum64() % uint64(len(s.hubs))
+	return s.hubs[index]
 }
 
 func (a *App) Publish(message *model.WebSocketEvent) {
@@ -101,6 +110,17 @@ func (h *Hub) Start() {
 	go doRecoverableStart()
 }
 
+func (a *App) HubRegister(webConn *WebConn) {
+	hub := a.GetHubForUserId(webConn.UserId)
+	if hub != nil {
+		hub.Register(webConn)
+	}
+}
+
+func (a *App) GetHubForUserId(userId string) *Hub {
+	return a.Srv().GetHubForUserId(userId)
+}
+
 type hubConnectionIndex struct {
 	byUserId     map[string][]*WebConn
 	byConnection map[*WebConn]int
@@ -115,6 +135,13 @@ func newHubConnectionIndex() *hubConnectionIndex {
 
 func (i *hubConnectionIndex) All() map[*WebConn]int {
 	return i.byConnection
+}
+
+func (h *Hub) Register(webConn *WebConn) {
+	select {
+	case h.register <- webConn:
+	case <-h.stop:
+	}
 }
 
 func (h *Hub) Broadcast(message *model.WebSocketEvent) {

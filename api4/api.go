@@ -54,5 +54,7 @@ func Init(a app.AppIface, root *mux.Router) *API {
 	api.InitPost()
 	api.InitFile()
 
+	api.InitWebsocket()
+
 	return &api
 }

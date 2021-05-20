@@ -27,8 +27,10 @@ type TeamStore interface {
 }
 
 type UserStore interface {
+	Count(options model.UserCountOptions) (int64, error)
 	Get(ctx context.Context, id string) (*model.User, error)
 	GetForLogin(loginId string) (*model.User, error)
+	Save(user *model.User) (*model.User, error)
 }
 
 type SessionStore interface {

@@ -3,6 +3,7 @@ package app
 import (
 	"errors"
 	"fmt"
+	"hash/maphash"
 	"net"
 	"net/http"
 	"time"
@@ -21,7 +22,8 @@ type Server struct {
 	Server     *http.Server
 	ListenAddr *net.TCPAddr
 
-	hubs []*Hub
+	hubs     []*Hub
+	hashSeed maphash.Seed
 
 	configStore *config.Store
 }
@@ -71,4 +73,8 @@ func (s *Server) Start() error {
 
 func (s *Server) Shutdown() {
 	s.configStore.Close()
+}
+
+func (s *App) OriginChecker() func(r *http.Request) bool {
+	return nil
 }
