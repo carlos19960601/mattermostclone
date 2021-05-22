@@ -28,7 +28,38 @@ func (u *User) ToJSON() string {
 	return string(b)
 }
 
+func (u *User) GetDisplayNameWithPrefix(nameFormat, prefix string) string {
+	displayName := prefix + u.Username
+	return u.getDisplayName(displayName, nameFormat)
+}
+
+func (u *User) getDisplayName(baseName, nameFormat string) string {
+	displayName := baseName
+	return displayName
+}
+
 func ComparePassword(hash string, password string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
+}
+
+func HashPassword(password string) string {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), 10)
+	if err != nil {
+		panic(err)
+	}
+	return string(hash)
+}
+
+func (u *User) PreSave() {
+	if u.Id == "" {
+		u.Id = NewId()
+	}
+	if u.Username == "" {
+		u.Username = NewId()
+	}
+
+	if u.Password != "" {
+		u.Password = HashPassword(u.Password)
+	}
 }

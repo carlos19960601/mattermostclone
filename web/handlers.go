@@ -5,6 +5,7 @@ import (
 
 	"github.com/zengqiang96/mattermostclone/app"
 	"github.com/zengqiang96/mattermostclone/app/request"
+	"github.com/zengqiang96/mattermostclone/utils"
 )
 
 type Handler struct {
@@ -18,5 +19,22 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		AppContext: &request.Context{},
 	}
 
-	h.HandleFunc(c, w, r)
+	token, tokenLocation := app.ParseAuthTokenFromRequest(r)
+	if token != "" && tokenLocation != app.TokenLocationCloudHeader {
+		session, err := c.App.GetSession(token)
+		defer app.ReturnSessionToPool(session)
+
+		if err != nil {
+
+		}
+		c.AppContext.SetSession(session)
+	}
+
+	if c.Err == nil {
+		h.HandleFunc(c, w, r)
+	}
+
+	if c.Err != nil {
+		utils.RenderWebAppError(c.App.Config(), w, r, c.Err)
+	}
 }

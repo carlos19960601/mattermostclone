@@ -49,5 +49,9 @@ func login(ctx *Context, w http.ResponseWriter, r *http.Request) {
 		ctx.Err = err
 		return
 	}
+
+	if r.Header.Get(model.HEADER_REQUESTED_WITH) == model.HEADER_REQUESTED_WITH_XML {
+		ctx.App.AttachSessionCookies(ctx.AppContext, w, r)
+	}
 	_, _ = w.Write([]byte(user.ToJSON()))
 }

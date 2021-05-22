@@ -10,11 +10,19 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/zengqiang96/mattermostclone/config"
+	"github.com/zengqiang96/mattermostclone/einterfaces"
+	"github.com/zengqiang96/mattermostclone/services/cache"
 	"github.com/zengqiang96/mattermostclone/store"
+	"github.com/zengqiang96/mattermostclone/store/localcachelayer"
+	"github.com/zengqiang96/mattermostclone/store/retrylayer"
+	"github.com/zengqiang96/mattermostclone/store/searchlayer"
+	"github.com/zengqiang96/mattermostclone/store/sqlstore"
+	"github.com/zengqiang96/mattermostclone/store/timerlayer"
 )
 
 type Server struct {
-	Store store.Store
+	sqlStore *sqlstore.SqlStore
+	Store    store.Store
 
 	RootRouter *mux.Router
 	Router     *mux.Router
@@ -25,7 +33,13 @@ type Server struct {
 	hubs     []*Hub
 	hashSeed maphash.Seed
 
+	newStore func() (store.Store, error)
+
 	configStore *config.Store
+
+	sessionCache cache.Cache
+
+	Cluster einterfaces.ClusterInterface
 }
 
 func NewServer(options ...Option) (*Server, error) {
@@ -42,6 +56,28 @@ func NewServer(options ...Option) (*Server, error) {
 
 	fakeApp := New(ServerConnector(&s))
 	fakeApp.HubStart()
+
+	var err error
+
+	if s.newStore == nil {
+		s.newStore = func() (store.Store, error) {
+			s.sqlStore = sqlstore.New(s.Config().SqlSettings)
+
+			lcl, err := localcachelayer.NewLocalCacheLayer(retrylayer.New(s.sqlStore))
+			if err != nil {
+				return nil, fmt.Errorf("创建localcachelayer失败 err: %w", err)
+			}
+
+			searchStore := searchlayer.NewSearchLayer(lcl)
+
+			return timerlayer.New(searchStore), nil
+		}
+	}
+
+	s.Store, err = s.newStore()
+	if err != nil {
+		return nil, fmt.Errorf("创建store失败, err: %w", err)
+	}
 
 	s.Router = s.RootRouter.PathPrefix("/").Subrouter()
 	return &s, nil

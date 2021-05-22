@@ -14,6 +14,9 @@ type WebConn struct {
 	App       *App
 	Websocket *websocket.Conn
 	UserId    string
+	send      chan model.WebSocketMessage
+
+	active bool
 }
 
 func (wc *WebConn) Close() {

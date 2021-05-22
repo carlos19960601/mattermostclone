@@ -2,9 +2,11 @@ package app
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/zengqiang96/mattermostclone/app/request"
 	"github.com/zengqiang96/mattermostclone/model"
+	"github.com/zengqiang96/mattermostclone/utils"
 )
 
 func (a *App) AuthenticateUserForLogin(c *request.Context, loginId, password string) (user *model.User, err *model.AppError) {
@@ -41,4 +43,26 @@ func (a *App) DoLogin(c *request.Context, w http.ResponseWriter, r *http.Request
 
 	c.SetSession(session)
 	return nil
+}
+
+func (a *App) AttachSessionCookies(c *request.Context, w http.ResponseWriter, r *http.Request) {
+	secure := false
+
+	maxAge := *a.Config().ServiceSettings.SessionLengthWebInDays * 60 * 60 * 24
+	domain := a.GetCookieDomain()
+	subpath, _ := utils.GetSubpathFromConfig(a.Config())
+
+	expiresAt := time.Unix(model.GetMillis()/1000, 0)
+	sessionCookie := &http.Cookie{
+		Name:     model.SESSION_COOKIE_TOKEN,
+		Value:    c.Session().Token,
+		Path:     subpath,
+		MaxAge:   maxAge,
+		Expires:  expiresAt,
+		HttpOnly: true,
+		Domain:   domain,
+		Secure:   secure,
+	}
+
+	http.SetCookie(w, sessionCookie)
 }

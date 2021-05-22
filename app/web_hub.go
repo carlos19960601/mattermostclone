@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"hash/maphash"
 	"runtime"
 
@@ -33,6 +34,15 @@ func (a *App) NewWebHub() *Hub {
 
 func (s *Server) Publish(message *model.WebSocketEvent) {
 	s.PublishSkipClusterMessage(message)
+
+	if s.Cluster != nil {
+		cm := &model.ClusterMessage{
+			Event:    model.CLUSTER_EVENT_PUBLISH,
+			SendType: model.CLUSTER_SEND_BEST_EFFORT,
+			Data:     message.ToJSON(),
+		}
+		s.Cluster.SendClusterMessage(cm)
+	}
 }
 
 func (s *Server) PublishSkipClusterMessage(event *model.WebSocketEvent) {
@@ -78,9 +88,24 @@ func (h *Hub) Start() {
 		connIndex := newHubConnectionIndex()
 		for {
 			select {
+			case webConn := <-h.register:
+				webConn.active = true
+				connIndex.Add(webConn)
 			case msg := <-h.broadcast:
+				msg = msg.PrecomputeJSON()
 				broadcast := func(webConn *WebConn) {
-
+					if !connIndex.Has(webConn) {
+						return
+					}
+					if webConn.shouldSendEvent(msg) {
+						select {
+						case webConn.send <- msg:
+						default:
+							fmt.Println("webhub.broadcast: cannot send, closing websocket for user")
+							close(webConn.send)
+							connIndex.Remove(webConn)
+						}
+					}
 				}
 
 				if msg.GetBroadcast().UserId != "" {
@@ -135,6 +160,31 @@ func newHubConnectionIndex() *hubConnectionIndex {
 
 func (i *hubConnectionIndex) All() map[*WebConn]int {
 	return i.byConnection
+}
+
+func (i *hubConnectionIndex) Add(wc *WebConn) {
+	i.byUserId[wc.UserId] = append(i.byUserId[wc.UserId], wc)
+	i.byConnection[wc] = len(i.byUserId[wc.UserId]) - 1
+}
+
+func (i *hubConnectionIndex) Has(wc *WebConn) bool {
+	_, ok := i.byConnection[wc]
+	return ok
+}
+
+func (i *hubConnectionIndex) Remove(wc *WebConn) {
+	userConnIndex, ok := i.byConnection[wc]
+	if !ok {
+		return
+	}
+
+	userConnections := i.byUserId[wc.UserId]
+	last := userConnections[len(userConnections)-1]
+	userConnections[userConnIndex] = last
+	i.byUserId[wc.UserId] = userConnections[:len(userConnections)-1]
+	i.byConnection[last] = userConnIndex
+
+	delete(i.byConnection, wc)
 }
 
 func (h *Hub) Register(webConn *WebConn) {

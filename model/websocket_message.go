@@ -4,6 +4,11 @@ const (
 	WEBSOCKET_EVENT_POSTED = "posted"
 )
 
+type WebSocketMessage interface {
+	ToJSON() string
+	EventType() string
+}
+
 type WebSocketEvent struct {
 	event     string
 	data      map[string]interface{}
