@@ -1,11 +1,12 @@
 package app
 
 import (
+	"errors"
 	"net/http"
 	"sync"
-	"time"
 
 	"github.com/zengqiang96/mattermostclone/model"
+	"github.com/zengqiang96/mattermostclone/store"
 )
 
 var userSessionPool = sync.Pool{
@@ -15,14 +16,18 @@ var userSessionPool = sync.Pool{
 }
 
 func (a *App) CreateSession(session *model.Session) (*model.Session, *model.AppError) {
-	session.Token = ""
+	session, err := a.srv.userService.CreateSession(session)
 
-	session, err := a.Srv().Store.Session().Save(session)
 	if err != nil {
-
+		var invErr *store.ErrInvalidInput
+		switch {
+		case errors.As(err, &invErr):
+			return nil, model.NewAppError("CreateSession", "app.session.save.existing.app_error", nil, invErr.Error(), http.StatusBadRequest)
+		default:
+			return nil, model.NewAppError("CreateSession", "app.session.save.app_error", nil, err.Error(), http.StatusInternalServerError)
+		}
 	}
 
-	a.AddSessionToCache(session)
 	return session, nil
 }
 
@@ -47,10 +52,6 @@ func (a *App) GetSession(token string) (*model.Session, *model.AppError) {
 	}
 
 	return session, nil
-}
-
-func (a *App) AddSessionToCache(session *model.Session) {
-	a.Srv().sessionCache.SetWithExpire(session.Token, session, time.Minute)
 }
 
 func (a *App) createSessionForUserAccessToken(tokenString string) (*model.Session, *model.AppError) {

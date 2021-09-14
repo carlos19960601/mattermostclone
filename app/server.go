@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/zengqiang96/mattermostclone/app/users"
 	"github.com/zengqiang96/mattermostclone/config"
 	"github.com/zengqiang96/mattermostclone/einterfaces"
 	"github.com/zengqiang96/mattermostclone/services/cache"
@@ -36,6 +37,8 @@ type Server struct {
 	newStore func() (store.Store, error)
 
 	configStore *config.Store
+
+	userService *users.UserService
 
 	sessionCache cache.Cache
 

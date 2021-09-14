@@ -24,6 +24,7 @@ type PostStore interface {
 
 type TeamStore interface {
 	Get(id string) (*model.Team, error)
+	GetTeamsForUser(ctx context.Context, userID string) ([]*model.TeamMember, error)
 }
 
 type UserStore interface {

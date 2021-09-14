@@ -12,6 +12,7 @@ type Config struct {
 type ServiceSettings struct {
 	ListenAddress          string
 	SessionLengthWebInDays *int
+	SessionCacheInMinutes  *int
 }
 
 type SqlSettings struct {
