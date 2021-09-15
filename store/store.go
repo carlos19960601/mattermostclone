@@ -32,6 +32,7 @@ type UserStore interface {
 	Get(ctx context.Context, id string) (*model.User, error)
 	GetForLogin(loginId string) (*model.User, error)
 	Save(user *model.User) (*model.User, error)
+	IsEmpty(excludeBots bool) (bool, error)
 }
 
 type SessionStore interface {

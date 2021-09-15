@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"hash/maphash"
 	"runtime"
 
@@ -37,9 +36,9 @@ func (s *Server) Publish(message *model.WebSocketEvent) {
 
 	if s.Cluster != nil {
 		cm := &model.ClusterMessage{
-			Event:    model.CLUSTER_EVENT_PUBLISH,
-			SendType: model.CLUSTER_SEND_BEST_EFFORT,
-			Data:     message.ToJSON(),
+			Event: model.CLUSTER_EVENT_PUBLISH,
+			// SendType: model.CLUSTER_SEND_BEST_EFFORT,
+			// Data:     message.ToJSON(),
 		}
 		s.Cluster.SendClusterMessage(cm)
 	}
@@ -92,29 +91,29 @@ func (h *Hub) Start() {
 				webConn.active = true
 				connIndex.Add(webConn)
 			case msg := <-h.broadcast:
-				msg = msg.PrecomputeJSON()
-				broadcast := func(webConn *WebConn) {
-					if !connIndex.Has(webConn) {
-						return
-					}
-					if webConn.shouldSendEvent(msg) {
-						select {
-						case webConn.send <- msg:
-						default:
-							fmt.Println("webhub.broadcast: cannot send, closing websocket for user")
-							close(webConn.send)
-							connIndex.Remove(webConn)
-						}
-					}
-				}
+				// msg = msg.PrecomputeJSON()
+				// broadcast := func(webConn *WebConn) {
+				// 	if !connIndex.Has(webConn) {
+				// 		return
+				// 	}
+				// 	if webConn.shouldSendEvent(msg) {
+				// 		select {
+				// 		case webConn.send <- msg:
+				// 		default:
+				// 			fmt.Println("webhub.broadcast: cannot send, closing websocket for user")
+				// 			close(webConn.send)
+				// 			connIndex.Remove(webConn)
+				// 		}
+				// 	}
+				// }
 
 				if msg.GetBroadcast().UserId != "" {
 
 				}
-				candidates := connIndex.All()
-				for webConn := range candidates {
-					broadcast(webConn)
-				}
+				// candidates := connIndex.All()
+				// for webConn := range candidates {
+				// 	broadcast(webConn)
+				// }
 			case <-h.stop:
 				for webConn := range connIndex.All() {
 					webConn.Close()

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/pkg/errors"
 	"github.com/zengqiang96/mattermostclone/model"
 	"github.com/zengqiang96/mattermostclone/store"
 )
@@ -100,4 +101,28 @@ func (us SqlUserStore) Save(user *model.User) (*model.User, error) {
 		return nil, fmt.Errorf("保存用户失败 userId: %s, err: %w", user.Id, err)
 	}
 	return user, nil
+}
+
+func (us SqlUserStore) IsEmpty(excludeBots bool) (bool, error) {
+	var hasRow bool
+	builder := us.getQueryBuilder().
+		Select("1").
+		Prefix("SELECT EXISTS (").
+		From("Users")
+
+	if excludeBots {
+		builder = builder.LeftJoin("Bots ON Users.Id = Bots.UserId").Where("Bots.UserId IS NULL")
+	}
+
+	builder = builder.Suffix(")")
+
+	query, args, err := builder.ToSql()
+	if err != nil {
+		return false, errors.Wrapf(err, "users_is_empty_to_sql")
+	}
+
+	if err = us.GetReplica().SelectOne(&hasRow, query, args...); err != nil {
+		return false, errors.Wrap(err, "failed to check if table is empty")
+	}
+	return !hasRow, nil
 }

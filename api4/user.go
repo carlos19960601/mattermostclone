@@ -1,6 +1,7 @@
 package api4
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/zengqiang96/mattermostclone/model"
@@ -14,13 +15,13 @@ func (api *API) InitUser() {
 }
 
 func createUser(ctx *Context, w http.ResponseWriter, r *http.Request) {
-	user := model.UserFromJson(r.Body)
-	if user == nil {
+	var user model.User
+	if jsonErr := json.NewDecoder(r.Body).Decode(&user); jsonErr != nil {
 		ctx.SetInvalidParam("user")
 		return
 	}
 
-	ruser, err := ctx.App.CreateUserFromSignup(ctx.AppContext, user)
+	ruser, err := ctx.App.CreateUserFromSignup(ctx.AppContext, &user)
 	if err != nil {
 		ctx.Err = err
 		return
