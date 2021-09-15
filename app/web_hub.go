@@ -32,6 +32,9 @@ func (a *App) NewWebHub() *Hub {
 }
 
 func (s *Server) Publish(message *model.WebSocketEvent) {
+	// 广播单机，如果有cluster通过SendClusterMessage给其他机器发送cluster message
+	// cluster中的其他机器收到cluster message再处理
+	// 这种方式和 https://github.com/GoBelieveIO/im_service 相似
 	s.PublishSkipClusterMessage(message)
 
 	if s.Cluster != nil {
@@ -45,10 +48,10 @@ func (s *Server) Publish(message *model.WebSocketEvent) {
 }
 
 func (s *Server) PublishSkipClusterMessage(event *model.WebSocketEvent) {
-	if event.GetBroadcast().UserId != "" {
+	if event.GetBroadcast().UserId != "" { // 如果了发送的user直接发送
 
 	} else {
-		for _, hub := range s.hubs {
+		for _, hub := range s.hubs { // 如果没有制定user，所有hub都处理这个message
 			hub.Broadcast(event)
 		}
 	}

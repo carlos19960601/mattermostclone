@@ -47,6 +47,8 @@ func (a *App) handlePostEvents(c *request.Context, post *model.Post, user *model
 			return err
 		}
 		team = t
+	} else {
+		team = &model.Team{}
 	}
 	if err := a.SendNotification(post, team, channel, user); err != nil {
 		return err
